@@ -17,3 +17,50 @@ parameters:
 
     # A secret key that's used to generate certain security-related tokens
     secret: ThisTokenIsNotSoSecretChangeIt
+
+    simple_oauth_login:
+        oauth_configs:
+            github:
+                providerParams:
+                    clientId: '...'
+                    clientSecret: '...'
+                    redirectUri: 'https://www.example.com/oauth_demo/oauth_login.php/github'
+                authorizationUrlParams:
+                    state: 'OPTIONAL_CUSTOM_CONFIGURED_STATE'
+                    scope:
+                        - 'user:email'
+            google:
+                providerParams:
+                    clientId: '...'
+                    clientSecret: '...'
+                    redirectUri: 'https://www.example.com/oauth_demo/oauth_login.php/google'
+                    hostedDomain: 'https://www.example.com'
+            linkedin:
+                providerParams:
+                    clientId: '...'
+                    clientSecret: '...'
+                    redirectUri: 'https://www.example.com/oauth_demo/oauth_login.php/linkedin'
+                authorizationUrlParams:
+                    state: 'OPTIONAL_CUSTOM_CONFIGURED_STATE'
+                    scope:
+                        - 'r_basicprofile'
+                        - 'r_emailaddress'
+            microsoft:
+                providerParams:
+                    clientId: '...'
+                    clientSecret: '...'
+                    redirectUri: 'https://www.example.com/oauth_demo/oauth_login.php/microsoft'
+                    urlAuthorize: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+                    urlAccessToken: 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+                    urlResourceOwnerDetails: ''
+                    scopes: 'openid User.Read'
+
+        fake_oauth:
+            enabled: false
+            mail: 'dummy@example.com'
+
+        user_details:
+            'dummy@example.com':
+                name: 'Dummy User'
+                roles:
+                    - 'ROLE_USER'

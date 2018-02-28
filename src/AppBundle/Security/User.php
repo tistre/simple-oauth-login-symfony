@@ -13,13 +13,16 @@ class User implements UserInterface
     /** @var OAuthInfo */
     protected $oAuthInfo;
 
+    /** @var array */
+    protected $roles = [];
+
 
     /**
      * User constructor.
      */
     public function __construct()
     {
-        $this->oAuthInfo = new OAuthInfo([]);
+        $this->setOAuthInfo(new OAuthInfo([]));
     }
 
 
@@ -41,7 +44,18 @@ class User implements UserInterface
      */
     public function getRoles()
     {
-        return ['ROLE_USER'];
+        return $this->roles;
+    }
+
+
+    /**
+     * @param array $roles
+     * @return self
+     */
+    public function setRoles(array $roles)
+    {
+        $this->roles = $roles;
+        return $this;
     }
 
 
@@ -77,13 +91,31 @@ class User implements UserInterface
      *
      * @return string The username
      */
-    public function getUsername(): string
+    public function getUsername()
     {
         if (strlen($this->oAuthInfo->getMail()) > 0) {
             return $this->oAuthInfo->getMail();
         }
 
         return self::DEFAULT_USERNAME;
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getMail()
+    {
+        return $this->oAuthInfo->getMail();
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->oAuthInfo->getName();
     }
 
 
@@ -100,10 +132,12 @@ class User implements UserInterface
 
     /**
      * @param OAuthInfo $oAuthInfo
+     * @return self
      */
     public function setOAuthInfo(OAuthInfo $oAuthInfo)
     {
         $this->oAuthInfo = $oAuthInfo;
+        return $this;
     }
 
 

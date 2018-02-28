@@ -7,6 +7,7 @@ use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
+use Tistre\SimpleOAuthLogin\OAuthInfo;
 
 
 class SessionUserProvider implements UserProviderInterface
@@ -14,14 +15,18 @@ class SessionUserProvider implements UserProviderInterface
     /** @var LoggerInterface */
     protected $logger;
 
+    /** @var SimpleOAuthConfig */
+    protected $simpleOAuthConfig;
+
 
     /**
      * SessionUserProvider constructor.
      * @param LoggerInterface $logger
      */
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger, SimpleOAuthConfig $simpleOAuthConfig)
     {
         $this->logger = $logger;
+        $this->simpleOAuthConfig = $simpleOAuthConfig;
     }
 
 
@@ -39,8 +44,16 @@ class SessionUserProvider implements UserProviderInterface
      */
     public function loadUserByUsername($username)
     {
-        // TODO: What for should we implement the loadUserByUsername() method?
-        return new User();
+        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($username);
+
+        $oAuthInfo = new OAuthInfo([
+            'mail' => $username,
+            'name' => $userDetails['name']
+        ]);
+
+        return (new User())
+            ->setOAuthInfo($oAuthInfo)
+            ->setRoles($userDetails['roles']);
     }
 
 
@@ -62,10 +75,7 @@ class SessionUserProvider implements UserProviderInterface
             throw new UnsupportedUserException('Instances of "%s" are not supported.', get_class($user));
         }
 
-        $newUser = new User();
-        $newUser->setOAuthInfo($user->getOAuthInfo());
-
-        return $newUser;
+        return $this->loadUserByUsername($user->getUsername());
     }
 
 

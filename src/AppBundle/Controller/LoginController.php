@@ -2,6 +2,7 @@
 
 namespace AppBundle\Controller;
 
+use AppBundle\Security\SimpleOAuthConfig;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Psr\Log\LoggerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
@@ -18,14 +19,17 @@ class LoginController extends Controller
     /** @var LoggerInterface */
     protected $logger;
 
+    /** @var SimpleOAuthConfig */
+    protected $simpleOAuthConfig;
 
     /**
      * LoginController constructor.
      * @param LoggerInterface $logger
      */
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger, SimpleOAuthConfig $simpleOAuthConfig)
     {
         $this->logger = $logger;
+        $this->simpleOAuthConfig = $simpleOAuthConfig;
     }
 
 
@@ -34,13 +38,18 @@ class LoginController extends Controller
      * @param Request $request
      * @return Response
      */
-    public function loginAction(Request $request): Response
+    public function loginAction(Request $request)
     {
+        $oAuthFakeParams = $this->simpleOAuthConfig->getFakeOAuth();
+$this->logger->debug(__METHOD__, $oAuthFakeParams);
+        $mail = $oAuthFakeParams['mail'];
+        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($mail);
+
         $oAuthInfo = (new OAuthInfo([]))
             ->setAuthenticated(true)
-            ->setProvider('dummy')
-            ->setName('Dummy User')
-            ->setMail('dummy@example.com');
+            ->setProvider('fake')
+            ->setMail($mail)
+            ->setName($userDetails['name']);
 
         $request->getSession()->set('oauth_info', $oAuthInfo->getArray());
 
@@ -55,21 +64,56 @@ class LoginController extends Controller
      * @param Request $request
      * @return Response
      */
-    public function loginSlashAction(Request $request): Response
+    public function loginSlashAction(Request $request)
     {
         return $this->loginAction($request);
     }
 
 
     /**
-     * @Route("/login/{service}", name="serviceLogin")
+     * @Route("/login/fake", name="fakeLogin")
      * @param Request $request
      * @return Response
      */
-    public function serviceLoginAction(Request $request, $service): Response
+    public function fakeLoginAction(Request $request)
     {
+        $oAuthFakeParams = $this->simpleOAuthConfig->getFakeOAuth();
+
+        if (!$oAuthFakeParams['enabled']) {
+            return new Response('Not found.', 404);
+        }
+
+        $mail = $oAuthFakeParams['mail'];
+        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($mail);
+
+        $oAuthInfo = (new OAuthInfo([]))
+            ->setAuthenticated(true)
+            ->setProvider('fake')
+            ->setMail($mail)
+            ->setName($userDetails['name']);
+
+        $request->getSession()->set('oauth_info', $oAuthInfo->getArray());
+
+        return new RedirectResponse($request->getBaseUrl());
+    }
+
+
+    /**
+     * @Route("/login/{service}", name="serviceLogin")
+     * @param Request $request
+     * @param string $service
+     * @return Response
+     */
+    public function serviceLoginAction(Request $request, $service)
+    {
+        $configs = $this->simpleOAuthConfig->getOAuthConfigs();
+
+        if (!isset($configs[$service])) {
+            return new Response('Not found.', 404);
+        }
+
         $oauthLogin = new Login();
-        $oauthLogin->addServiceConfigsFromArray($this->getParameter('oauth_configs'));
+        $oauthLogin->addServiceConfigsFromArray($configs);
 
         if ($request->getMethod() === 'GET') {
             if ($request->query->has('code')) {
@@ -93,7 +137,7 @@ class LoginController extends Controller
      * @param $service
      * @return Response
      */
-    protected function redirectToService(Request $request, Login $oauthLogin, $service): Response
+    protected function redirectToService(Request $request, Login $oauthLogin, $service)
     {
         $oauthService = $oauthLogin->getService($service);
 
@@ -117,10 +161,10 @@ class LoginController extends Controller
     /**
      * @param Request $request
      * @param Login $oauthLogin
-     * @param $service
+     * @param string $service
      * @return Response
      */
-    protected function onReturnFromService(Request $request, Login $oauthLogin, $service): Response
+    protected function onReturnFromService(Request $request, Login $oauthLogin, $service)
     {
         $oAuthInfo = new OAuthInfo($request->getSession()->get('oauth_info'));
 

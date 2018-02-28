@@ -98,10 +98,7 @@ class SessionAuthenticator implements AuthenticatorInterface
             $credentials = new OAuthInfo([]);
         }
 
-        $user = new User();
-        $user->setOAuthInfo($credentials);
-
-        return $user;
+        return $userProvider->loadUserByUsername($credentials->getMail());
     }
 
 
