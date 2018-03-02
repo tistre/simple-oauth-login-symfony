@@ -44,16 +44,7 @@ class SessionUserProvider implements UserProviderInterface
      */
     public function loadUserByUsername($username)
     {
-        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($username);
-
-        $oAuthInfo = new OAuthInfo([
-            'mail' => $username,
-            'name' => $userDetails['name']
-        ]);
-
-        return (new User())
-            ->setOAuthInfo($oAuthInfo)
-            ->setRoles($userDetails['roles']);
+        return $this->simpleOAuthConfig->getUserByUsername($username);
     }
 
 

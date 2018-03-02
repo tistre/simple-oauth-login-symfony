@@ -80,24 +80,28 @@ class SimpleOAuthConfig
 
     /**
      * @param $username
-     * @return array
+     * @return User
      */
-    public function getUserDetailsByUsername($username)
+    public function getUserByUsername($username): User
     {
+        $user = new User();
+
         if (!isset($this->userDetails[$username])) {
-            $result = [];
-        } else {
-            $result = $this->userDetails[$username];
+            return $user;
         }
 
-        if (!isset($result['name'])) {
-            $result['name'] = $username;
+        $user->setUsername($username);
+
+        $details = $this->userDetails[$username];
+
+        if (!empty($details['name'])) {
+            $user->setName($details['name']);
         }
 
-        if (!(isset($result['roles']) && is_array($result['roles']))) {
-            $result['roles'] = [];
+        if (isset($details['roles']) && is_array($details['roles'])) {
+            $user->setRoles($details['roles']);
         }
         
-        return $result;
+        return $user;
     }
 }

@@ -40,20 +40,16 @@ class LoginController extends Controller
      */
     public function loginAction(Request $request)
     {
-        $oAuthFakeParams = $this->simpleOAuthConfig->getFakeOAuth();
-$this->logger->debug(__METHOD__, $oAuthFakeParams);
-        $mail = $oAuthFakeParams['mail'];
-        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($mail);
+        $services = array_keys($this->simpleOAuthConfig->getOAuthConfigs());
 
-        $oAuthInfo = (new OAuthInfo([]))
-            ->setAuthenticated(true)
-            ->setProvider('fake')
-            ->setMail($mail)
-            ->setName($userDetails['name']);
+        // TODO: Support more than one OAuth provider (let the user choose from a list)
+        // (Currently, we simply use the first configured provider.)
 
-        $request->getSession()->set('oauth_info', $oAuthInfo->getArray());
+        foreach ($services as $service) {
+            return new RedirectResponse($this->generateUrl('serviceLogin', ['service' => $service]));
+        }
 
-        return new RedirectResponse($request->getBaseUrl());
+        return new RedirectResponse($this->generateUrl('fakeLogin'));
     }
 
 
@@ -83,14 +79,13 @@ $this->logger->debug(__METHOD__, $oAuthFakeParams);
             return new Response('Not found.', 404);
         }
 
-        $mail = $oAuthFakeParams['mail'];
-        $userDetails = $this->simpleOAuthConfig->getUserDetailsByUsername($mail);
+        $user = $this->simpleOAuthConfig->getUserByUsername($oAuthFakeParams['mail']);
 
         $oAuthInfo = (new OAuthInfo([]))
             ->setAuthenticated(true)
             ->setProvider('fake')
-            ->setMail($mail)
-            ->setName($userDetails['name']);
+            ->setMail($user->getMail())
+            ->setName($user->getName());
 
         $request->getSession()->set('oauth_info', $oAuthInfo->getArray());
 
