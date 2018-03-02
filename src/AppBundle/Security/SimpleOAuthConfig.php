@@ -85,9 +85,19 @@ class SimpleOAuthConfig
     public function getUserDetailsByUsername($username)
     {
         if (!isset($this->userDetails[$username])) {
-            return [];
+            $result = [];
+        } else {
+            $result = $this->userDetails[$username];
         }
 
-        return $this->userDetails[$username];
+        if (!isset($result['name'])) {
+            $result['name'] = $username;
+        }
+
+        if (!(isset($result['roles']) && is_array($result['roles']))) {
+            $result['roles'] = [];
+        }
+        
+        return $result;
     }
 }
