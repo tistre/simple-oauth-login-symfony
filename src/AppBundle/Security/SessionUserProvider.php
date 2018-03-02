@@ -66,7 +66,14 @@ class SessionUserProvider implements UserProviderInterface
             throw new UnsupportedUserException('Instances of "%s" are not supported.', get_class($user));
         }
 
-        return $this->loadUserByUsername($user->getUsername());
+        // Don't always reload, just copy the data
+        // TODO: Could we simply return the original $user object?
+        // TODO: Or at least implement a clone method?
+        
+        return (new User())
+            ->setUsername($user->getUsername())
+            ->setName($user->getName())
+            ->setRoles($user->getRoles());
     }
 
 

@@ -98,7 +98,16 @@ class SessionAuthenticator implements AuthenticatorInterface
             $credentials = new OAuthInfo([]);
         }
 
-        return $userProvider->loadUserByUsername($credentials->getMail());
+        $user = $userProvider->loadUserByUsername($credentials->getMail());
+        
+        // If the user cannot be loaded, keep at least mail and name
+        
+        if ($user->getUsername() === User::DEFAULT_USERNAME) {
+            $user->setMail($credentials->getMail());
+            $user->setName($credentials->getName());
+        }
+        
+        return $user;
     }
 
 
