@@ -105,6 +105,14 @@ class SessionAuthenticator implements AuthenticatorInterface
         if ($user->getUsername() === User::DEFAULT_USERNAME) {
             $user->setMail($credentials->getMail());
             $user->setName($credentials->getName());
+            
+            $roles = [];
+            
+            foreach ($credentials->getGroups() as $group) {
+                $roles[] = 'ROLE_' . strtoupper($group['name']);
+            }
+            
+            $user->setRoles($roles);
         }
         
         return $user;

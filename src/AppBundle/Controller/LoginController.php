@@ -4,6 +4,7 @@ namespace AppBundle\Controller;
 
 use AppBundle\Security\SimpleOAuthConfig;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
+use League\OAuth2\Client\Token\AccessToken;
 use Psr\Log\LoggerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -193,7 +194,8 @@ class LoginController extends Controller
                 ->setName($userDetails['name'])
                 ->setMail($userDetails['mail'])
                 ->setImage($userDetails['image'])
-                ->setUrl($userDetails['url']);
+                ->setUrl($userDetails['url'])
+                ->setGroups($oauthService->getUserGroups($accessToken));
 
             $request->getSession()->set('oauth_info', $oAuthInfo->getArray());
 
