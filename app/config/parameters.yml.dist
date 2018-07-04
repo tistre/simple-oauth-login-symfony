@@ -49,5 +49,6 @@ parameters:
         user_details:
             'dummy@example.com':
                 name: 'Dummy User'
+                api_key: 'ChangeThisToSomeWeirdLongApiKey'
                 roles:
                     - 'ROLE_USER'

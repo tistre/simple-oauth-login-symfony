@@ -25,11 +25,15 @@ class SessionAuthenticator implements AuthenticatorInterface
     /** @var RouterInterface */
     protected $router;
 
+    /** @var SimpleOAuthConfig */
+    protected $simpleOAuthConfig;
 
-    public function __construct(RouterInterface $router, LoggerInterface $logger)
+
+    public function __construct(RouterInterface $router, LoggerInterface $logger, SimpleOAuthConfig $simpleOAuthConfig)
     {
         $this->router = $router;
         $this->logger = $logger;
+        $this->simpleOAuthConfig = $simpleOAuthConfig;
     }
 
 
@@ -54,26 +58,54 @@ class SessionAuthenticator implements AuthenticatorInterface
      *
      * Whatever value you return here will be passed to getUser() and checkCredentials()
      *
-     * For example, for a form login, you might:
-     *
-     *      return array(
-     *          'username' => $request->request->get('_username'),
-     *          'password' => $request->request->get('_password'),
-     *      );
-     *
-     * Or for an API token that's on a header, you might use:
-     *
-     *      return array('api_key' => $request->headers->get('X-API-TOKEN'));
-     *
      * @param Request $request
-     *
      * @return mixed Any non-null value
      *
      * @throws \UnexpectedValueException If null is returned
      */
     public function getCredentials(Request $request)
     {
-        return new OAuthInfo($request->getSession()->get('oauth_info'));
+        $sessionInfo = $request->getSession()->get('oauth_info');
+
+        /*
+        Not logged in? Check for API key in Authorization bearer token and look for a corresponding
+        user in parameters.yml (simple_oauth_login.user_details) with this value in the api_key property.
+
+        Example HTTP header:
+
+        Authorization: "Bearer ChangeThisToSomeWeirdLongApiKey"
+
+        Example parameters.yml entry:
+
+        simple_oauth_login:
+            user_details:
+                'dummy@example.com':
+                    name: 'Dummy user'
+                    api_key: 'ChangeThisToSomeWeirdLongApiKey'
+                    roles:
+                        - 'ROLE_USER'
+        */
+
+        if (empty($sessionInfo)) {
+            $headers = apache_request_headers();
+
+            if (isset($headers['Authorization']) && (substr($headers['Authorization'], 0, 7) === 'Bearer ')) {
+                $apiKey = trim(substr($headers['Authorization'], 7));
+
+                foreach ($this->simpleOAuthConfig->getUserDetails() as $userMail => $userDetail) {
+                    if (isset($userDetail['api_key']) && ($userDetail['api_key'] === $apiKey)) {
+                        return (new OAuthInfo([]))
+                            ->setAuthenticated(true)
+                            ->setProvider('fake')
+                            ->setName($userDetail['name'])
+                            ->setMail($userMail)
+                            ->setGroups($userDetail['roles']);
+                    }
+                }
+            }
+        }
+
+        return new OAuthInfo($sessionInfo);
     }
 
 
@@ -99,14 +131,26 @@ class SessionAuthenticator implements AuthenticatorInterface
         }
 
         $user = $userProvider->loadUserByUsername($credentials->getMail());
-        
+
+        if (!$user instanceof User) {
+            throw new AuthenticationException('User provider must return an instance of ' . User::class);
+        }
+
         // If the user cannot be loaded, keep at least mail and name
-        
+
         if ($user->getUsername() === User::DEFAULT_USERNAME) {
             $user->setMail($credentials->getMail());
             $user->setName($credentials->getName());
+
+            $roles = [];
+
+            foreach ($credentials->getGroups() as $group) {
+                $roles[] = 'ROLE_' . strtoupper($group['name']);
+            }
+
+            $user->setRoles($roles);
         }
-        
+
         return $user;
     }
 
